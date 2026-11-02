@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Panel — Experiencia Barista</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--paper:#eef0ef;--surface:#fff;--surface-2:#e3e7e6;--ink:#23282b;--ink-dim:#5b6469;--copper:#a8632f;--copper-bright:#8c4f22;--steel:#8f9ba1;--line:#d5d9d8;--ok:#2f7d4f}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;line-height:1.5}
+  button,input,textarea,select{font-family:inherit;font-size:14px;color:inherit}
+  .top{position:sticky;top:0;z-index:20;background:rgba(238,240,239,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:16px clamp(16px,4vw,48px);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .top h1{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px}
+  .top h1 span{color:var(--copper-bright);font-style:italic}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{font-family:'IBM Plex Mono',monospace;font-size:12.5px;letter-spacing:.03em;padding:10px 16px;border-radius:3px;border:1px solid var(--line);background:var(--surface);cursor:pointer;transition:all .15s;display:inline-block}
+  .btn:hover{border-color:var(--copper);color:var(--copper-bright)}
+  .btn.primary{background:var(--copper);border-color:var(--copper);color:#fff;font-weight:600}
+  .btn.primary:hover{background:var(--copper-bright);color:#fff}
+  .btn.danger:hover{border-color:#b3392f;color:#b3392f}
+  .btn.small{padding:6px 10px;font-size:11.5px}
+  main{max-width:1000px;margin:0 auto;padding:28px clamp(16px,4vw,48px) 80px}
+  .steps{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin-bottom:22px;font-size:13.5px;color:var(--ink-dim)}
+  .steps b{color:var(--ink)}
+  .steps ol{margin:6px 0 0 18px}
+  .banner{background:#fff6e8;border:1px solid #e8c88f;border-radius:4px;padding:12px 16px;margin-bottom:18px;font-size:13px;display:none;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+  .banner.show{display:flex}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+  .bar h2{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px}
+  .item{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:12px 14px;margin-bottom:10px}
+  .thumb{width:60px;height:60px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--steel);font-family:'IBM Plex Mono',monospace}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .info{flex:1;min-width:0}
+  .info .n{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .info .m{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink-dim)}
+  .pill{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:6px;color:var(--copper-bright)}
+  .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+  .none{text-align:center;padding:40px;color:var(--ink-dim);background:var(--surface);border:1px dashed var(--line);border-radius:4px}
+
+  .overlay{position:fixed;inset:0;background:rgba(23,26,28,.55);z-index:50;display:none;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
+  .overlay.show{display:flex}
+  .form{background:var(--surface);border-radius:6px;max-width:620px;width:100%;padding:26px 28px}
+  .form h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:26px;margin-bottom:18px}
+  label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-dim);margin:14px 0 6px}
+  label small{text-transform:none;letter-spacing:0;color:var(--steel)}
+  input[type=text],input[type=number],textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:#fff;outline:none}
+  input:focus,textarea:focus{border-color:var(--copper)}
+  textarea{min-height:90px;resize:vertical}
+  .checks{display:flex;gap:22px;margin-top:16px;flex-wrap:wrap}
+  .checks label{display:flex;align-items:center;gap:8px;margin:0;text-transform:none;letter-spacing:0;font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:var(--ink)}
+  .photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+  .ph{position:relative;width:78px;height:78px;border-radius:3px;overflow:hidden;border:1px solid var(--line);background:var(--surface-2)}
+  .ph img{width:100%;height:100%;object-fit:cover}
+  .ph button{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;background:rgba(35,40,43,.8);color:#fff;font-size:11px;cursor:pointer}
+  .ph .main{position:absolute;bottom:0;left:0;right:0;background:rgba(168,99,47,.9);color:#fff;font-size:9px;text-align:center;font-family:'IBM Plex Mono',monospace;letter-spacing:.05em}
+  .add-ph{width:78px;height:78px;border:1px dashed var(--steel);border-radius:3px;display:flex;align-items:center;justify-content:center;color:var(--ink-dim);cursor:pointer;font-size:24px;background:var(--paper)}
+  .add-ph:hover{border-color:var(--copper);color:var(--copper-bright)}
+  .form-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+  .err{color:#b3392f;font-size:13px;margin-top:10px;display:none}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:3px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:99}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <h1>Panel <span>Experiencia Barista</span></h1>
+  <div class="row">
+    <a class="btn" href="catalogo.html" target="_blank">Ver tienda</a>
+    <button class="btn primary" id="btn-download">Descargar productos.js</button>
+  </div>
+</div>
+
+<main>
+  <div class="steps">
+    <b>Cómo publicar tus cambios:</b>
+    <ol>
+      <li>Agregá, editá o borrá productos acá abajo.</li>
+      <li>Tocá <b>Descargar productos.js</b>.</li>
+      <li>Reemplazá el archivo <b>productos.js</b> viejo por el nuevo en tu sitio (misma carpeta que catalogo.html, o en GitHub). Listo.</li>
+    </ol>
+    <div style="margin-top:8px">Tus cambios quedan guardados como borrador en este navegador hasta que los publiques.</div>
+  </div>
+
+  <div class="banner" id="banner">
+    <span>Estás viendo un <b>borrador</b> con cambios sin publicar.</span>
+    <button class="btn small" id="btn-discard">Descartar borrador y volver a lo publicado</button>
+  </div>
+
+  <div class="bar">
+    <h2 id="count">Productos</h2>
+    <button class="btn primary" id="btn-new">+ Agregar producto</button>
+  </div>
+  <div id="list"></div>
+
+  <div class="steps" style="margin-top:26px">
+    <label style="margin-top:0">Número de WhatsApp <small>(con código de país, sin + ni espacios — ej: 5492604096272)</small></label>
+    <input type="text" id="wa" inputmode="numeric">
+  </div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="form">
+    <h3 id="f-title">Nuevo producto</h3>
+
+    <label>Nombre</label>
+    <input type="text" id="f-nombre" placeholder="Ej: Tamper 58mm">
+
+    <label>Categoría <small>(elegí una existente o escribí una nueva)</small></label>
+    <input type="text" id="f-cat" list="cats" placeholder="Ej: Tampers">
+    <datalist id="cats"></datalist>
+
+    <label>Precio en ARS <small>(dejalo vacío para mostrar "Consultar precio")</small></label>
+    <input type="number" id="f-precio" min="0" step="1" placeholder="Ej: 32900">
+
+    <label>Descripción</label>
+    <textarea id="f-desc" placeholder="Una descripción corta del producto"></textarea>
+
+    <label>Características cortas <small>(separadas por coma)</small></label>
+    <input type="text" id="f-tags" placeholder="Ej: 51 mm, Acero inoxidable, 380 g">
+
+    <label>Fotos <small>(la primera es la principal)</small></label>
+    <div class="photos" id="photos"></div>
+    <input type="file" id="f-file" accept="image/*" multiple hidden>
+
+    <div class="checks">
+      <label><input type="checkbox" id="f-dest"> Mostrar en destacados</label>
+      <label><input type="checkbox" id="f-agot"> Sin stock</label>
+    </div>
+
+    <div class="err" id="f-err"></div>
+    <div class="form-foot">
+      <button class="btn" id="f-cancel">Cancelar</button>
+      <button class="btn primary" id="f-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="productos.js"></script>
+<script>
+(function(){
+  var KEY='eb_borrador_v1';
+  var $=function(s){return document.querySelector(s)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function clone(o){return JSON.parse(JSON.stringify(o))}
+
+  var published={config:clone(window.CONFIG||{whatsapp:''}),productos:clone(window.PRODUCTOS||[])};
+  var data=clone(published), isDraft=false;
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){var d=JSON.parse(raw); if(d&&d.productos){data=d;isDraft=true}}
+  }catch(e){}
+
+  var editingId=null, fotos=[];
+
+  function persist(){
+    isDraft=true;
+    try{localStorage.setItem(KEY,JSON.stringify(data))}
+    catch(e){toast('No pude guardar el borrador (fotos muy pesadas). Descargá el archivo ahora.')}
+    renderBanner();
+  }
+  function toast(t){var el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){el.classList.remove('show')},2600)}
+  function renderBanner(){$('#banner').classList.toggle('show',isDraft)}
+
+  function render(){
+    var L=data.productos;
+    $('#count').textContent=L.length+' producto'+(L.length===1?'':'s');
+    if(!L.length){$('#list').innerHTML='<div class="none">Todavía no hay productos. Tocá “Agregar producto”.</div>';return}
+    $('#list').innerHTML=L.map(function(p,i){
+      var im=(p.imagenes||[])[0];
+      var price=(p.precio===null||p.precio===''||p.precio===undefined)?'Consultar precio':'$'+Number(p.precio).toLocaleString('es-AR');
+      return '<div class="item" data-i="'+i+'">'+
+        '<div class="thumb">'+(im?'<img src="'+esc(im)+'" alt="">':'sin foto')+'</div>'+
+        '<div class="info"><div class="n">'+esc(p.nombre)+(p.destacado?'<span class="pill">Destacado</span>':'')+(p.agotado?'<span class="pill">Sin stock</span>':'')+'</div>'+
+        '<div class="m">'+esc(p.categoria||'Sin categoría')+' · '+price+'</div></div>'+
+        '<div class="acts">'+
+        '<button class="btn small" data-a="up" '+(i===0?'disabled style="opacity:.4"':'')+'>↑</button>'+
+        '<button class="btn small" data-a="down" '+(i===L.length-1?'disabled style="opacity:.4"':'')+'>↓</button>'+
+        '<button class="btn small" data-a="edit">Editar</button>'+
+        '<button class="btn small danger" data-a="del">Borrar</button></div></div>';
+    }).join('');
+  }
+
+  function renderCats(){
+    var seen=[];data.productos.forEach(function(p){if(p.categoria&&seen.indexOf(p.categoria)<0)seen.push(p.categoria)});
+    $('#cats').innerHTML=seen.map(function(c){return '<option value="'+esc(c)+'">'}).join('');
+  }
+  function renderPhotos(){
+    $('#photos').innerHTML=fotos.map(function(s,i){
+      return '<div class="ph"><img src="'+esc(s)+'" alt=""><button data-r="'+i+'" title="Quitar">✕</button>'+(i===0?'<div class="main">PRINCIPAL</div>':'')+'</div>';
+    }).join('')+'<div class="add-ph" id="add-ph">+</div>';
+  }
+
+  function openForm(id){
+    editingId=id||null; renderCats(); $('#f-err').style.display='none';
+    var p=id?data.productos.filter(function(x){return x.id===id})[0]:null;
+    $('#f-title').textContent=p?'Editar producto':'Nuevo producto';
+    $('#f-nombre').value=p?p.nombre:'';
+    $('#f-cat').value=p?(p.categoria||''):'';
+    $('#f-precio').value=(p&&p.precio!==null&&p.precio!==undefined)?p.precio:'';
+    $('#f-desc').value=p?(p.descripcion||''):'';
+    $('#f-tags').value=p?(p.etiquetas||[]).join(', '):'';
+    $('#f-dest').checked=!!(p&&p.destacado);
+    $('#f-agot').checked=!!(p&&p.agotado);
+    fotos=p?(p.imagenes||[]).slice():[];
+    renderPhotos();
+    $('#overlay').classList.add('show');
+  }
+  function closeForm(){$('#overlay').classList.remove('show')}
+
+  function slug(s){return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'producto'}
+  function uniqueId(name){
+    var base=slug(name),id=base,n=2;
+    while(data.productos.some(function(p){return p.id===id&&p.id!==editingId})){id=base+'-'+n++}
+    return id;
+  }
+
+  function resize(file,max){
+    return new Promise(function(res,rej){
+      var fr=new FileReader();
+      fr.onload=function(){
+        var img=new Image();
+        img.onload=function(){
+          var s=Math.min(1,max/Math.max(img.width,img.height));
+          var c=document.createElement('canvas');c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          res(c.toDataURL('image/jpeg',0.82));
+        };
+        img.onerror=rej;img.src=fr.result;
+      };
+      fr.onerror=rej;fr.readAsDataURL(file);
+    });
+  }
+
+  function save(){
+    var nombre=$('#f-nombre').value.trim();
+    if(!nombre){var e=$('#f-err');e.textContent='Falta el nombre del producto.';e.style.display='block';return}
+    var precioRaw=$('#f-precio').value.trim();
+    var prod={
+      id:editingId||uniqueId(nombre),
+      nombre:nombre,
+      categoria:$('#f-cat').value.trim()||'Otros',
+      precio:precioRaw===''?null:Number(precioRaw),
+      descripcion:$('#f-desc').value.trim(),
+      etiquetas:$('#f-tags').value.split(',').map(function(t){return t.trim()}).filter(Boolean),
+      imagenes:fotos.slice(),
+      destacado:$('#f-dest').checked,
+      agotado:$('#f-agot').checked
+    };
+    if(editingId){
+      data.productos=data.productos.map(function(p){return p.id===editingId?prod:p});
+    } else { data.productos.push(prod) }
+    persist();render();closeForm();toast('Guardado. Recordá descargar productos.js para publicar.');
+  }
+
+  $('#btn-new').onclick=function(){openForm(null)};
+  $('#f-cancel').onclick=closeForm;
+  $('#f-save').onclick=save;
+  $('#overlay').addEventListener('mousedown',function(e){if(e.target===this)closeForm()});
+  $('#photos').addEventListener('click',function(e){
+    if(e.target.id==='add-ph'||e.target.closest('#add-ph')){$('#f-file').click();return}
+    var r=e.target.getAttribute('data-r');
+    if(r!==null){fotos.splice(Number(r),1);renderPhotos()}
+  });
+  $('#f-file').addEventListener('change',function(e){
+    var files=Array.prototype.slice.call(e.target.files);e.target.value='';
+    Promise.all(files.map(function(f){return resize(f,900)})).then(function(out){fotos=fotos.concat(out);renderPhotos()}).catch(function(){toast('No pude leer una de las fotos.')});
+  });
+  $('#list').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-a]');if(!b||b.disabled)return;
+    var i=Number(b.closest('.item').getAttribute('data-i')),a=b.getAttribute('data-a'),L=data.productos;
+    if(a==='edit'){openForm(L[i].id)}
+    else if(a==='del'){if(confirm('¿Borrar "'+L[i].nombre+'"?')){L.splice(i,1);persist();render()}}
+    else if(a==='up'&&i>0){var t=L[i];L[i]=L[i-1];L[i-1]=t;persist();render()}
+    else if(a==='down'&&i<L.length-1){var t2=L[i];L[i]=L[i+1];L[i+1]=t2;persist();render()}
+  });
+  $('#wa').value=data.config.whatsapp||'';
+  $('#wa').addEventListener('change',function(){data.config.whatsapp=this.value.replace(/\D/g,'');this.value=data.config.whatsapp;persist()});
+  $('#btn-discard').onclick=function(){
+    if(!confirm('Se pierden los cambios sin publicar. ¿Seguro?'))return;
+    try{localStorage.removeItem(KEY)}catch(e){}
+    data=clone(published);isDraft=false;$('#wa').value=data.config.whatsapp||'';render();renderBanner();
+  };
+  $('#btn-download').onclick=function(){
+    var js='window.CONFIG = '+JSON.stringify(data.config,null,2)+';\nwindow.PRODUCTOS = '+JSON.stringify(data.productos,null,2)+';\n';
+    var blob=new Blob([js],{type:'text/javascript'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='productos.js';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+    toast('Descargado. Ahora reemplazá productos.js en tu sitio.');
+  };
+
+  render();renderBanner();
+})();
+</script>
+</body>
+</html>
