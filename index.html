@@ -196,6 +196,19 @@
   .opt b{font-family:'IBM Plex Mono',monospace;font-weight:600}
   .opt small{display:block;color:var(--ink-dim);font-size:11.5px}
   .ship-err.show{display:block}
+  .field{margin-top:12px}
+  .field label{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:5px}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:3px;background:#fff;font-family:inherit;font-size:14px;color:var(--ink);outline:none}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--copper)}
+  .field textarea{min-height:64px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .done{padding:26px 4px 10px;text-align:center}
+  .done-n{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.08em;color:var(--copper-bright);text-transform:uppercase}
+  .done h3{font-family:'Instrument Serif',serif;font-weight:400;font-size:28px;margin:6px 0 10px}
+  .done p{font-size:14px;color:var(--ink-dim);margin-bottom:12px}
+  .pay{text-align:left;border:1px dashed var(--steel);border-radius:4px;padding:14px 16px;margin:14px 0;font-family:'IBM Plex Mono',monospace;font-size:13px;line-height:1.8}
+  .pay b{color:var(--ink)}
+  a.send-btn{text-decoration:none}
   @media (max-width:860px){
     .fab{width:54px;height:54px}
     footer{padding-bottom:96px}
@@ -431,11 +444,14 @@
 
   /* ============ CARRITO + ENVÍO ============ */
   var ENV=CFG.envios||{};
-  var API=String(ENV.api||'').trim();
+  var API=String(ENV.api||'').trim().replace(/\/+$/,'');
   var RETIRO_DIR=ENV.retiroDireccion||'';
   var GRATIS=(ENV.gratisDesde!==null&&ENV.gratisDesde!==undefined&&ENV.gratisDesde!==''&&!isNaN(Number(ENV.gratisDesde)))?Number(ENV.gratisDesde):null;
   var CART_KEY='eb_carrito_v1', SHIP_KEY='eb_envio_v2';
   var cart=[], ship={modo:'envio',cp:''}, quote={estado:'idle',opciones:[],sel:null,msg:''}, qToken=0;
+  var view='cart', order=null, sending=false, formErr='';
+  var form={nombre:'',email:'',telefono:'',calle:'',numero:'',piso:'',localidad:'',provincia:'',obs:''};
+  var PROVS=[['A','Salta'],['B','Buenos Aires'],['C','Ciudad Autónoma de Buenos Aires'],['D','San Luis'],['E','Entre Ríos'],['F','La Rioja'],['G','Santiago del Estero'],['H','Chaco'],['J','San Juan'],['K','Catamarca'],['L','La Pampa'],['M','Mendoza'],['N','Misiones'],['P','Formosa'],['Q','Neuquén'],['R','Río Negro'],['S','Santa Fe'],['T','Tucumán'],['U','Chubut'],['V','Tierra del Fuego'],['W','Corrientes'],['X','Córdoba'],['Y','Jujuy'],['Z','Santa Cruz']];
   try{cart=JSON.parse(localStorage.getItem(CART_KEY)||'[]')}catch(e){cart=[]}
   try{var s0=JSON.parse(localStorage.getItem(SHIP_KEY)||'null'); if(s0&&typeof s0==='object'){ ship.modo=s0.modo==='retiro'?'retiro':'envio'; ship.cp=String(s0.cp||'') }}catch(e){}
   if(!Array.isArray(cart)) cart=[];
@@ -477,7 +493,7 @@
     var my=++qToken;
     quote={estado:'loading',opciones:[],sel:null,msg:''}; renderCart();
     var body={cpDestino:cp,items:cart.map(function(i){var p=byId(i.id);return {id:p.id,nombre:p.nombre,cantidad:i.qty,peso:Number(p.peso),alto:Number(p.alto),ancho:Number(p.ancho),largo:Number(p.largo),valor:hasPrice(p)?Number(p.precio):0}})};
-    fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+    fetch(API+'/cotizar-envio',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
       .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})})
       .then(function(x){
         if(my!==qToken) return;
@@ -526,6 +542,9 @@
     var c=calc();
     $('#cart-count').textContent=c.units;
     var body=$('#cart-body'), foot=$('#cart-foot');
+    if(view==='done'&&order) return renderDone(body,foot);
+    if(view==='form'&&!cart.length) view='cart';
+    if(view==='form') return renderForm(body,foot,c);
     if(!cart.length){
       body.innerHTML='<div class="drawer-empty">Tu carrito está vacío.<br>Agregá productos desde el catálogo.</div>';
       foot.innerHTML=''; return;
@@ -552,7 +571,67 @@
       '<div class="sum"><span>Envío</span><span>'+esc(c.envioTxt)+'</span></div>'+
       '<div class="sum total"><span>'+(inc?'Total estimado':'Total')+'</span><span>'+money(total)+'</span></div>'+
       (notes.length?'<div class="sum-note">'+notes.join(' ')+'</div>':'')+
-      '<button class="send-btn" id="cart-send">'+WA_ICON+'Enviar pedido por WhatsApp</button>';
+      '<button class="send-btn" id="cart-send">'+(API?'Realizar pedido':WA_ICON+'Enviar pedido por WhatsApp')+'</button>';
+  }
+
+  function fld(id,label,type,ac,ph){
+    return '<div class="field"><label for="f-'+id+'">'+label+'</label><input id="f-'+id+'" data-f="'+id+'" type="'+type+'" value="'+esc(form[id])+'"'+(ac?' autocomplete="'+ac+'"':'')+(ph?' placeholder="'+esc(ph)+'"':'')+'></div>';
+  }
+  function renderForm(body,foot,c){
+    var envio=ship.modo==='envio';
+    var h='<button class="clear" id="form-back" style="text-align:left;margin:12px 0 0">← Volver al carrito</button>'+
+      '<div class="ship"><h4>Tus datos</h4>'+
+      fld('nombre','Nombre y apellido','text','name')+fld('email','Email','email','email')+fld('telefono','Teléfono / WhatsApp','tel','tel')+'</div>';
+    if(envio){
+      h+='<div class="ship"><h4>Dirección de entrega · CP '+esc(parseCP(ship.cp))+'</h4>'+
+        '<div class="row2">'+fld('calle','Calle','text','address-line1')+fld('numero','Número','text','')+'</div>'+
+        '<div class="row2">'+fld('piso','Piso / Depto (opcional)','text','')+fld('localidad','Localidad','text','address-level2')+'</div>'+
+        '<div class="field"><label for="f-provincia">Provincia</label><select id="f-provincia" data-f="provincia"><option value="">Elegí…</option>'+
+        PROVS.map(function(p){return '<option value="'+p[0]+'"'+(form.provincia===p[0]?' selected':'')+'>'+esc(p[1])+'</option>'}).join('')+'</select></div></div>';
+    } else {
+      h+='<div class="ship"><h4>Retiro en persona</h4><div class="ship-note">'+(RETIRO_DIR?'Retirás en: '+esc(RETIRO_DIR)+'. ':'')+'Coordinamos día y horario por WhatsApp.</div></div>';
+    }
+    h+='<div class="field"><label for="f-obs">Observaciones (opcional)</label><textarea id="f-obs" data-f="obs">'+esc(form.obs)+'</textarea></div>'+
+      (formErr?'<div class="ship-err show">'+esc(formErr)+'</div>':'');
+    body.innerHTML=h;
+    var total=c.subtotal+(c.envio||0), inc=(c.sinPrecio>0)||(c.envio===null);
+    foot.innerHTML=
+      '<div class="sum"><span>Subtotal</span><span>'+money(c.subtotal)+'</span></div>'+
+      '<div class="sum"><span>Envío</span><span>'+esc(c.envioTxt)+'</span></div>'+
+      '<div class="sum total"><span>'+(inc?'Total estimado':'Total')+'</span><span>'+money(total)+'</span></div>'+
+      '<button class="send-btn" id="form-send"'+(sending?' disabled':'')+'>'+(sending?'Enviando…':'Confirmar pedido')+'</button>';
+  }
+  function renderDone(body,foot){
+    var o=order, p=o.pago||{};
+    var pay=(p.alias||p.cbu)?'<div class="pay">'+(p.alias?'Alias: <b>'+esc(p.alias)+'</b><br>':'')+(p.cbu?'CBU: <b>'+esc(p.cbu)+'</b><br>':'')+(p.titular?'Titular: '+esc(p.titular)+'<br>':'')+'Importe: <b>'+money(o.total)+'</b>'+(o.parcial?' (estimado)':'')+'<br>Referencia: pedido #'+esc(o.numero)+'</div>':'';
+    var msg='Hola! Hice el pedido #'+o.numero+' y te envío el comprobante de la transferencia.';
+    body.innerHTML='<div class="done"><div class="done-n">Pedido #'+esc(o.numero)+'</div><h3>¡Gracias, '+esc(String(o.nombre||'').split(' ')[0])+'!</h3>'+
+      '<p>Registramos tu pedido.'+(o.parcial?' Hay datos a confirmar, así que te escribimos con el total final antes de que transfieras.':'')+'</p>'+pay+
+      '<p>'+(o.mail&&o.mail.cliente?'Te mandamos un mail con estos datos. ':'')+'Cuando transfieras, enviá el comprobante por WhatsApp indicando el número de pedido.</p></div>';
+    foot.innerHTML='<a class="send-btn" target="_blank" rel="noopener" href="'+waUrl(msg)+'">'+WA_ICON+'Enviar comprobante por WhatsApp</a><button class="clear" id="done-close">Seguir comprando</button>';
+  }
+  function submitOrder(){
+    var errs=[], f=form, envio=ship.modo==='envio';
+    if(f.nombre.trim().length<3) errs.push('Ingresá tu nombre y apellido.');
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) errs.push('Revisá tu email.');
+    if(f.telefono.replace(/\D/g,'').length<8) errs.push('Revisá tu teléfono.');
+    if(envio&&(!f.calle.trim()||!f.numero.trim()||!f.localidad.trim()||!f.provincia)) errs.push('Completá calle, número, localidad y provincia.');
+    if(errs.length){ formErr=errs.join(' '); return renderCart() }
+    var c=calc(); formErr=''; sending=true; renderCart();
+    var payload={
+      cliente:{nombre:f.nombre,email:f.email,telefono:f.telefono},
+      entrega:envio?{modo:'envio',cp:parseCP(ship.cp),direccion:{calle:f.calle,numero:f.numero,piso:f.piso,localidad:f.localidad,provincia:f.provincia},servicio:c.op?c.op.servicio:'',observaciones:f.obs}:{modo:'retiro',observaciones:f.obs},
+      items:cart.map(function(i){var p=byId(i.id);return {id:p.id,nombre:p.nombre,cantidad:i.qty,precio:hasPrice(p)?Number(p.precio):null}}),
+      envioPrecio:envio?c.envio:0
+    };
+    fetch(API+'/crear-pedido',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){return r.json().then(function(j){return {ok:r.ok,j:j}})})
+      .then(function(x){
+        if(!x.ok||!x.j||!x.j.numero) throw new Error((x.j&&x.j.error)||'error');
+        order=x.j; order.nombre=f.nombre; cart=[]; resetQuote(); save(); view='done';
+      })
+      .catch(function(){ formErr='No pudimos registrar tu pedido. Probá de nuevo o escribinos por WhatsApp.' })
+      .then(function(){ sending=false; renderCart() });
   }
 
   function buildMessage(){
@@ -589,16 +668,21 @@
     var d=e.target.closest('[data-del]'); if(d){ removeItem(d.getAttribute('data-del')); return }
     var m=e.target.closest('[data-mode]'); if(m){ ship.modo=m.getAttribute('data-mode'); save(); renderCart(); return }
     if(e.target.closest('#cp-go')){ quoteNow(); return }
+    if(e.target.id==='form-back'){ view='cart'; formErr=''; renderCart(); return }
     if(e.target.id==='cart-clear'){ if(confirm('¿Vaciar el carrito?')){ cart=[]; resetQuote(); save(); renderCart() } }
   });
   $('#cart-body').addEventListener('input',function(e){
+    var fk=e.target.getAttribute&&e.target.getAttribute('data-f'); if(fk){ form[fk]=e.target.value; return }
     if(e.target.id==='ship-cp'){ ship.cp=e.target.value; resetQuote(); save(); renderCart(); }
   });
   $('#cart-body').addEventListener('keydown',function(e){ if(e.target.id==='ship-cp'&&e.key==='Enter'){ e.preventDefault(); quoteNow() } });
   $('#cart-body').addEventListener('change',function(e){
     if(e.target.name==='envopt'){ quote.sel=Number(e.target.value); renderCart() }
+    if(e.target.tagName==='SELECT'&&e.target.getAttribute('data-f')){ form[e.target.getAttribute('data-f')]=e.target.value }
   });
   $('#cart-foot').addEventListener('click',function(e){
+    if(e.target.closest('#form-send')){ if(!sending) submitOrder(); return }
+    if(e.target.closest('#done-close')){ view='cart'; order=null; renderCart(); closeCart(); return }
     if(!e.target.closest('#cart-send')) return;
     if(!cart.length) return;
     if(ship.modo==='envio'){
@@ -606,6 +690,7 @@
       if(!cp){ quote={estado:'error',opciones:[],sel:null,msg:'Ingresá tu código postal para enviar el pedido.'}; renderCart(); var ci=$('#ship-cp'); if(ci){ ci.classList.add('need'); ci.focus() } return }
       if(API&&(quote.estado==='idle'||quote.estado==='loading')){ quote={estado:'needcalc',opciones:[],sel:null,msg:'Tocá “Calcular” para ver el costo de envío antes de enviar el pedido.'}; renderCart(); return }
     }
+    if(API){ view='form'; formErr=''; renderCart(); return }
     window.open(waUrl(buildMessage()),'_blank');
   });
   $('#fab').href=waUrl('Hola! Quiero hacer una consulta');
